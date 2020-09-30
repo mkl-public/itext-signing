@@ -18,3 +18,12 @@ A RSA keypair and a self-signed certificate then have been generated in that slo
                 -keystore NONE -storetype PKCS11 -genkeypair -alias RSAkey -keyalg RSA
                 -dname "CN=mkl PKCS11 test, OU=tests, O=mkl"
 
+On Linux it has been installed from the Ubuntu apt package softhsm.
+
+The token initialized here got the automatically generated slot number `925991530`. Consequentially, the matching PKCS#11 configuration file created as <tt>pkcs11-linux.cfg</tt> looks like this:
+
+    name = 925991530
+    library = /lib/softhsm/libsofthsm2.so
+    slot = 925991530
+
+Here also a RSA keypair and a self-signed certificate have been generated in that slot using the same command as above, merely with <tt>pkcs11-linux.cfg</tt> instead of <tt>pkcs11.cfg</tt>.

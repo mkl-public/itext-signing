@@ -24,9 +24,14 @@ class TestPkcs11Access {
         BouncyCastleProvider providerBC = new BouncyCastleProvider();
         Security.addProvider(providerBC);
 
-        String config = "name = 171137967\r\n"
+        String config = System.getProperty("os.name").toLowerCase().contains("win") ?
+                "name = 171137967\r\n"
                 + "library = d:/Program Files/SoftHSM2/lib/softhsm2-x64.dll\r\n"
-                + "slot = 171137967\r\n";
+                + "slot = 171137967\r\n"
+                :
+                "name = 925991530\n"
+                + "library = /lib/softhsm/libsofthsm2.so\n"
+                + "slot = 925991530";
 
         Provider p = Security.getProvider("SunPKCS11");
         assertNotNull(p, "Could not find SunPKCS11 provider.");
