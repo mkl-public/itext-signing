@@ -44,7 +44,9 @@ public class Pkcs11Signature implements IExternalSignature {
 
     public Pkcs11Signature(String pkcs11config) {
         Provider p = Security.getProvider("SunPKCS11");
-        provider = p.configure("--" + pkcs11config);
+        if (!pkcs11config.startsWith("--"))
+            pkcs11config = "--" + pkcs11config;
+        provider = p.configure(pkcs11config);
         Security.addProvider(provider);
     }
 
