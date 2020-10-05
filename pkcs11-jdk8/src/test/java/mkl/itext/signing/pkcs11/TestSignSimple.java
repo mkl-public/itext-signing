@@ -34,15 +34,9 @@ class TestSignSimple {
 
     @Test
     void testSignSimple() throws IOException, GeneralSecurityException {
-        String config = System.getProperty("os.name").toLowerCase().contains("win") ?
-                "name = 171137967\r\n"
-                + "library = d:/Program Files/SoftHSM2/lib/softhsm2-x64.dll\r\n"
-                + "slot = 171137967\r\n"
-                :
-                "name = 925991530\n"
-                + "library = /lib/softhsm/libsofthsm2.so\n"
-                + "slot = 925991530";
-        Pkcs11Signature signature = new Pkcs11Signature(config).select(null, "5678".toCharArray()).setHashAlgorithm("SHA256");
+        String config = TestEnvironment.getPkcs11Config();
+        Pkcs11Signature signature = (config.startsWith("--") ? new Pkcs11Signature(config) : new Pkcs11Signature(new File(config)))
+                .select(null, "5678".toCharArray()).setHashAlgorithm("SHA256");
 
         try (   InputStream resource = getClass().getResourceAsStream("/circles.pdf");
                 PdfReader pdfReader = new PdfReader(resource);
