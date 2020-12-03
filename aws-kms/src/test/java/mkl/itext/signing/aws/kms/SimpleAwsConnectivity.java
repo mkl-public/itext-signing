@@ -57,6 +57,7 @@ import software.amazon.awssdk.services.kms.model.GetPublicKeyResponse;
 import software.amazon.awssdk.services.kms.model.MessageType;
 import software.amazon.awssdk.services.kms.model.SignRequest;
 import software.amazon.awssdk.services.kms.model.SignResponse;
+import software.amazon.awssdk.services.kms.model.SigningAlgorithmSpec;
 import software.amazon.awssdk.services.kms.model.VerifyRequest;
 import software.amazon.awssdk.services.kms.model.VerifyResponse;
 
@@ -141,6 +142,10 @@ class SimpleAwsConnectivity {
             JcaPEMKeyConverter converter = new JcaPEMKeyConverter();
             PublicKey publicKey = converter.getPublicKey(spki);
             assertNotNull(publicKey, "public key");
+            List<SigningAlgorithmSpec> signingAlgorithms = getPublicKeyResponse.signingAlgorithms();
+            assertNotNull(signingAlgorithms, "signing algorithms");
+            assertFalse(signingAlgorithms.isEmpty(), "signing algorithms empty");
+            assertEquals(Collections.singletonList(SigningAlgorithmSpec.ECDSA_SHA_256), signingAlgorithms);
         }
     }
 
