@@ -1,6 +1,8 @@
 package mkl.itext.signing.aws.kms;
 
 import java.io.OutputStream;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.bouncycastle.operator.ContentSigner;
@@ -15,46 +17,22 @@ import software.amazon.awssdk.services.kms.model.SignRequest;
 import software.amazon.awssdk.services.kms.model.SignResponse;
 import software.amazon.awssdk.services.kms.model.SigningAlgorithmSpec;
 
+/**
+ * @author mkl
+ */
 public class AwsKmsContentSigner implements ContentSigner {
     final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
     final String keyId;
     final SigningAlgorithmSpec signingAlgorithmSpec;
-    final String signatureAlgorithm;
+    final AlgorithmIdentifier signatureAlgorithm;
 
     public AwsKmsContentSigner(String keyId, SigningAlgorithmSpec signingAlgorithmSpec) {
         this.keyId = keyId;
         this.signingAlgorithmSpec = signingAlgorithmSpec;
-        switch(signingAlgorithmSpec) {
-        case ECDSA_SHA_256:
-            this.signatureAlgorithm = "SHA256withECDSA";
-            break;
-        case ECDSA_SHA_384:
-            this.signatureAlgorithm = "SHA384withECDSA";
-            break;
-        case ECDSA_SHA_512:
-            this.signatureAlgorithm = "SHA512withECDSA";
-            break;
-        case RSASSA_PKCS1_V1_5_SHA_256:
-            this.signatureAlgorithm = "SHA256withRSA";
-            break;
-        case RSASSA_PKCS1_V1_5_SHA_384:
-            this.signatureAlgorithm = "SHA384withRSA";
-            break;
-        case RSASSA_PKCS1_V1_5_SHA_512:
-            this.signatureAlgorithm = "SHA512withRSA";
-            break;
-        case RSASSA_PSS_SHA_256:
-            this.signatureAlgorithm = "SHA256withRSAandMGF1";
-            break;
-        case RSASSA_PSS_SHA_384:
-            this.signatureAlgorithm = "SHA384withRSAandMGF1";
-            break;
-        case RSASSA_PSS_SHA_512:
-            this.signatureAlgorithm = "SHA512withRSAandMGF1";
-            break;
-        default:
+        String signatureAlgorithmName = signingAlgorithmNameBySpec.get(signingAlgorithmSpec);
+        if (signatureAlgorithmName == null)
             throw new IllegalArgumentException("Unknown signature algorithm " + signingAlgorithmSpec);
-        }
+        this.signatureAlgorithm = new DefaultSignatureAlgorithmIdentifierFinder().find(signatureAlgorithmName);
     }
 
     @Override
@@ -69,6 +47,8 @@ public class AwsKmsContentSigner implements ContentSigner {
             SignResponse signResponse = kmsClient.sign(signRequest);
             SdkBytes signatureSdkBytes = signResponse.signature();
             return signatureSdkBytes.asByteArray();
+        } finally {
+            outputStream.reset();
         }
     }
 
@@ -79,6 +59,21 @@ public class AwsKmsContentSigner implements ContentSigner {
 
     @Override
     public AlgorithmIdentifier getAlgorithmIdentifier() {
-        return new DefaultSignatureAlgorithmIdentifierFinder().find(signatureAlgorithm);
+        return signatureAlgorithm;
+    }
+
+    final static Map<SigningAlgorithmSpec, String> signingAlgorithmNameBySpec;
+
+    static {
+        signingAlgorithmNameBySpec = new HashMap<>();
+        signingAlgorithmNameBySpec.put(SigningAlgorithmSpec.ECDSA_SHA_256, "SHA256withECDSA");
+        signingAlgorithmNameBySpec.put(SigningAlgorithmSpec.ECDSA_SHA_384, "SHA384withECDSA");
+        signingAlgorithmNameBySpec.put(SigningAlgorithmSpec.ECDSA_SHA_512, "SHA512withECDSA");
+        signingAlgorithmNameBySpec.put(SigningAlgorithmSpec.RSASSA_PKCS1_V1_5_SHA_256, "SHA256withRSA");
+        signingAlgorithmNameBySpec.put(SigningAlgorithmSpec.RSASSA_PKCS1_V1_5_SHA_384, "SHA384withRSA");
+        signingAlgorithmNameBySpec.put(SigningAlgorithmSpec.RSASSA_PKCS1_V1_5_SHA_512, "SHA512withRSA");
+        signingAlgorithmNameBySpec.put(SigningAlgorithmSpec.RSASSA_PSS_SHA_256, "SHA256withRSAandMGF1");
+        signingAlgorithmNameBySpec.put(SigningAlgorithmSpec.RSASSA_PSS_SHA_384, "SHA384withRSAandMGF1");
+        signingAlgorithmNameBySpec.put(SigningAlgorithmSpec.RSASSA_PSS_SHA_512, "SHA512withRSAandMGF1");
     }
 }

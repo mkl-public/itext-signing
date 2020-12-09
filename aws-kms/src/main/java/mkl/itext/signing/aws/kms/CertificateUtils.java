@@ -4,10 +4,11 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.security.GeneralSecurityException;
 import java.security.PublicKey;
-import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.function.Function;
 
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.x500.X500Name;
@@ -27,8 +28,12 @@ import software.amazon.awssdk.services.kms.model.SigningAlgorithmSpec;
  * @author mkl
  */
 public class CertificateUtils {
- // based on https://stackoverflow.com/a/43918337/1729265
-    public static Certificate generateSelfSignedCertificate(String keyId, String subjectDN) throws IOException, GeneralSecurityException {
+    public static X509Certificate generateSelfSignedCertificate(String keyId, String subjectDN) throws IOException, GeneralSecurityException {
+        return generateSelfSignedCertificate(keyId, subjectDN, a -> a != null && a.size() > 0 ? a.get(0) : null);
+    }
+
+    // based on https://stackoverflow.com/a/43918337/1729265
+    public static X509Certificate generateSelfSignedCertificate(String keyId, String subjectDN, Function<List<SigningAlgorithmSpec>, SigningAlgorithmSpec> selector) throws IOException, GeneralSecurityException {
         long now = System.currentTimeMillis();
         Date startDate = new Date(now);
 
@@ -49,8 +54,7 @@ public class CertificateUtils {
             JcaPEMKeyConverter converter = new JcaPEMKeyConverter();
             publicKey = converter.getPublicKey(spki);
             List<SigningAlgorithmSpec> signingAlgorithms = response.signingAlgorithms();
-            if (signingAlgorithms != null && !signingAlgorithms.isEmpty())
-                signingAlgorithmSpec = signingAlgorithms.get(0);
+            signingAlgorithmSpec = selector.apply(signingAlgorithms);
         }
         JcaX509v3CertificateBuilder certBuilder = new JcaX509v3CertificateBuilder(dnName, certSerialNumber, startDate, endDate, dnName, publicKey);
 
