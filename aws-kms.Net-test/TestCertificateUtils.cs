@@ -8,12 +8,30 @@ namespace itext.signing.aws_kms_Net
     class TestCertificateUtils
     {
         [Test]
-        public void testSignSimpleRsa()
+        public void testCreateSimpleRsa()
         {
             string keyId = "alias/SigningExamples-RSA_2048";
             X509Certificate2 certificate = CertificateUtils.generateSelfSignedCertificate(keyId, "CN=AWS KMS Certificate Test,OU=mkl tests,O=mkl", list => list[0]);
             Console.WriteLine(certificate);
-            File.WriteAllBytes("AWS KMS Certificate Test.cer", certificate.GetRawCertData());
+            File.WriteAllBytes("AWS KMS Certificate Test RSA.cer", certificate.GetRawCertData());
+        }
+
+        [Test]
+        public void testCreateSimpleRsaSsaPss()
+        {
+            string keyId = "alias/SigningExamples-RSA_2048";
+            X509Certificate2 certificate = CertificateUtils.generateSelfSignedCertificate(keyId, "CN=AWS KMS Certificate Test,OU=mkl tests,O=mkl", list => list.Find(a => a.StartsWith("RSASSA_PSS")));
+            Console.WriteLine(certificate);
+            File.WriteAllBytes("AWS KMS Certificate Test RSAwithMGF1.cer", certificate.GetRawCertData());
+        }
+
+        [Test]
+        public void testCreateSimpleEcdsa()
+        {
+            string keyId = "alias/SigningExamples-ECC_NIST_P256";
+            X509Certificate2 certificate = CertificateUtils.generateSelfSignedCertificate(keyId, "CN=AWS KMS Certificate Test,OU=mkl tests,O=mkl", list => list[0]);
+            Console.WriteLine(certificate);
+            File.WriteAllBytes("AWS KMS Certificate Test ECDSA.cer", certificate.GetRawCertData());
         }
     }
 }

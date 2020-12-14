@@ -58,5 +58,53 @@ namespace itext.signing.aws_kms_Net
                 pdfSigner.SignDetached(signature, new X509Certificate[] { certificate }, null, null, null, 0, CryptoStandard.CMS);
             }
         }
+
+        [Test]
+        public void testSignSimpleRsaSsaPss()
+        {
+            string testFileName = @"..\..\..\resources\circles.pdf";
+
+            string keyId = "alias/SigningExamples-RSA_2048";
+            Func<System.Collections.Generic.List<string>, string> selector = list => list.Find(name => name.StartsWith("RSASSA_PSS"));
+            System.Security.Cryptography.X509Certificates.X509Certificate2 certificate2 = CertificateUtils.generateSelfSignedCertificate(
+                keyId,
+                "CN=AWS KMS PDF Signing Test RSAwithMGF1,OU=mkl tests,O=mkl",
+                selector
+            );
+            X509Certificate certificate = new X509Certificate(X509CertificateStructure.GetInstance(certificate2.RawData));
+            AwsKmsSignatureContainer signature = new AwsKmsSignatureContainer(certificate, keyId, selector);
+
+            using (PdfReader pdfReader = new PdfReader(testFileName))
+            using (FileStream result = File.Create("circles-aws-kms-signed-simple-RSAwithMGF1.pdf"))
+            {
+                PdfSigner pdfSigner = new PdfSigner(pdfReader, result, new StampingProperties().UseAppendMode());
+
+                pdfSigner.SignExternalContainer(signature, 8192);
+            }
+        }
+
+        [Test]
+        public void testSignSimpleEcdsaExternal()
+        {
+            string testFileName = @"..\..\..\resources\circles.pdf";
+
+            string keyId = "alias/SigningExamples-ECC_NIST_P256";
+            Func<System.Collections.Generic.List<string>, string> selector = list => list.Find(name => name.StartsWith("ECDSA_SHA_256"));
+            System.Security.Cryptography.X509Certificates.X509Certificate2 certificate2 = CertificateUtils.generateSelfSignedCertificate(
+                keyId,
+                "CN=AWS KMS PDF Signing Test ECDSA,OU=mkl tests,O=mkl",
+                selector
+            );
+            X509Certificate certificate = new X509Certificate(X509CertificateStructure.GetInstance(certificate2.RawData));
+            AwsKmsSignatureContainer signature = new AwsKmsSignatureContainer(certificate, keyId, selector);
+
+            using (PdfReader pdfReader = new PdfReader(testFileName))
+            using (FileStream result = File.Create("circles-aws-kms-signed-simple-ECDSA-External.pdf"))
+            {
+                PdfSigner pdfSigner = new PdfSigner(pdfReader, result, new StampingProperties().UseAppendMode());
+
+                pdfSigner.SignExternalContainer(signature, 8192);
+            }
+        }
     }
 }
