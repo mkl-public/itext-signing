@@ -1,4 +1,4 @@
-package mkl.itext.signing.pkcs11;
+package mkl.itext.signing.pkcs11.generic;
 
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -17,6 +17,14 @@ import java.util.Enumeration;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.jupiter.api.Test;
 
+/**
+ * This test class executes some simple tests addressing the
+ * PKCS11 device to retrieve key handles and certificates.
+ * The {@link TestEnvironment} utility is used to retrieve
+ * parameters for accessing the device.
+ * 
+ * @author mkl
+ */
 class TestPkcs11Access {
 
     @Test
@@ -36,22 +44,25 @@ class TestPkcs11Access {
 
         KeyStore ks = KeyStore.getInstance("PKCS11", providerPKCS11);
         assertNotNull(ks, "Provider did not provide a key store.");
-        ks.load(null, "5678".toCharArray());
+        ks.load(null, TestEnvironment.getPkcs11Pin());
 
         Enumeration<String> aliases = ks.aliases();
         assertNotNull(aliases, "Key store did not provide an aliases enumeration.");
         assertTrue(aliases.hasMoreElements(), "Aliases enumeration is empty.");
-        String alias = aliases.nextElement();
-        System.out.printf("Alias name: %s\n", alias);
+        while (aliases.hasMoreElements()) {
+            String alias = aliases.nextElement();
+            System.out.printf("Alias name: %s\n", alias);
+            PrivateKey pk = (PrivateKey) ks.getKey(alias, TestEnvironment.getPkcs11Pin());
+            System.out.printf("  has private key: %s\n", (pk != null));
+            if (pk == null)
+                continue;
 
-        PrivateKey pk = (PrivateKey) ks.getKey(alias, "5678".toCharArray());
-        assertNotNull(pk, "Key store did not provide a private key for the alias " + alias);
-
-        Certificate[] chain = ks.getCertificateChain(alias);
-        assertNotNull(chain, "Key store did not provide a certificate chain for the alias " + alias);
-        assertNotEquals(0, chain.length, "Key store provided an empty certificate chain for the alias " + alias);
-        for (Certificate certificate : chain)
-            if (certificate instanceof X509Certificate)
-                System.out.printf("Subject: %s\n", ((X509Certificate) certificate).getSubjectDN());
+            Certificate[] chain = ks.getCertificateChain(alias);
+            assertNotNull(chain, "Key store did not provide a certificate chain for the alias " + alias);
+            assertNotEquals(0, chain.length, "Key store provided an empty certificate chain for the alias " + alias);
+            for (Certificate certificate : chain)
+                if (certificate instanceof X509Certificate)
+                    System.out.printf("Subject: %s\n", ((X509Certificate) certificate).getSubjectDN());
+        }
     }
 }
