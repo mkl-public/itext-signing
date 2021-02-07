@@ -28,7 +28,7 @@ namespace itext.signing.pkcs11_Net
             slot = pkcs11Library.GetSlotList(SlotsType.WithOrWithoutTokenPresent).Find(slot => slot.SlotId == slotId);
         }
 
-        public Pkcs11Signature Select(string alias, string pin)
+        public Pkcs11Signature Select(string alias, string certLabel, string pin)
         {
             List<CKA> pkAttributeKeys = new List<CKA>();
             pkAttributeKeys.Add(CKA.CKA_KEY_TYPE);
@@ -71,14 +71,16 @@ namespace itext.signing.pkcs11_Net
                 string thisAlias = keyAttributes[1].GetValueAsString();
                 if (thisAlias == null || thisAlias.Length == 0)
                     thisAlias = keyAttributes[2].GetValueAsString();
-                if (alias != null && alias.Equals(thisAlias))
+                if (alias != null && !alias.Equals(thisAlias))
                     continue;
 
                 attributes.Clear();
                 attributes.Add(objectAttributeFactory.Create(CKA.CKA_CLASS, CKO.CKO_CERTIFICATE));
                 attributes.Add(objectAttributeFactory.Create(CKA.CKA_CERTIFICATE_TYPE, CKC.CKC_X_509));
-                if (thisAlias != null && thisAlias.Length > 0)
-                    attributes.Add(objectAttributeFactory.Create(CKA.CKA_LABEL, thisAlias));
+                if (certLabel == null && thisAlias != null && thisAlias.Length > 0)
+                    certLabel = thisAlias;
+                if (certLabel != null)
+                    attributes.Add(objectAttributeFactory.Create(CKA.CKA_LABEL, certLabel));
                 List<IObjectHandle> certificates = session.FindAllObjects(attributes);
                 if (certificates.Count != 1)
                     continue;
