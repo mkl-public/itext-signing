@@ -15,6 +15,7 @@ import com.itextpdf.kernel.pdf.PdfReader;
 import com.itextpdf.kernel.pdf.StampingProperties;
 import com.itextpdf.signatures.BouncyCastleDigest;
 import com.itextpdf.signatures.IExternalDigest;
+import com.itextpdf.signatures.ITSAClient;
 import com.itextpdf.signatures.PdfSigner;
 import com.itextpdf.signatures.PdfSigner.CryptoStandard;
 
@@ -47,7 +48,7 @@ public class BaseSignSimple {
             PdfSigner pdfSigner = new PdfSigner(pdfReader, resultStream, new StampingProperties().useAppendMode());
 
             IExternalDigest externalDigest = new BouncyCastleDigest();
-            pdfSigner.signDetached(externalDigest , signature, signature.getChain(), null, null, null, 0, CryptoStandard.CMS);
+            pdfSigner.signDetached(externalDigest , signature, signature.getChain(), null, null, tsaClient, 0, CryptoStandard.CMS);
         }
     }
 
@@ -55,4 +56,6 @@ public class BaseSignSimple {
     protected String alias;
     protected char[] pin;
     protected File result;
+
+    protected ITSAClient tsaClient = null;
 }
