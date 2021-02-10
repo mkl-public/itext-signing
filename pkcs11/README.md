@@ -69,6 +69,35 @@ The matching PKCS#11 configuration file created as <tt>pkcs11-beid.cfg</tt> look
     library = "c:/Program Files (x86)/Belgium Identity Card/FireFox Plugin Manifests/beid_ff_pkcs11_64.dll"
     slot = 0
 
+## Entrust Signing Automation Service
+
+PKCS#11 based signing has also been tested with the _Entrust Signing Automation Service_ (SAS). The client has been installed and configured according to the SAS User Guide. In particular on Windows the _administrator_ user has been created with PIN `1234` and on Linux the _application_ user has been created with PIN `5678`, resulting in matching `credentials` and `config` files being generated in `C:\Users\%USERNAME%\AppData\Roaming\Entrust\SigningClient\` and `$HOME/.signingclient/`.
+
+The matching PKCS#11 configuration files look like this on Windows:
+
+    name = Entrust
+    library = c:\Program Files\Entrust\SigningClient\P11SigningClient64.dll
+    slot = 1
+
+and like this on Linux:
+
+    name = Entrust
+    library = /home/mkl/bin/libp11signingclient64.so
+    slot = 1
+
+(In the absence of an actual installer program on Linux the driver path is somewhat arbitrary.)
+
+As described in the chapter _Creating the Signing Key and the Certificate_ of the Guide the signing key and CSR have been created using
+
+    signingclient create key --key-type RSA2048 --csr-out request.csr
+
+and the provided certificate then has been imported using
+
+    signingclient import certificate --cert ServerCertificate.crt
+
+resulting in a key label `New Key` and a certificate label `CN=Entrust Limited,OU=ECS,O=Entrust Limited,L=Kanata,ST=Ontario,C=CA`. By using the information from the chapter _Command-line Reference_ one can get better labels.
+
+
 # Selecting a PKCS#11 Device
 
 The PKCS#11 device used by a generic test can be controlled via an environment variable, <tt>PKCS11_CONFIG</tt> which can either be set to the path and name of a PKCS#11 configuration file or one of the fixed values <tt>SOFTHSM</tt> and <tt>UTIMACO</tt>. An alias (if required) can be selected in the environment variable <tt>PKCS11_ALIAS</tt>. The PIN used for signing can be selected using the environment variable <tt>PKCS11_PIN</tt> and defaults to <tt>5678</tt>.
