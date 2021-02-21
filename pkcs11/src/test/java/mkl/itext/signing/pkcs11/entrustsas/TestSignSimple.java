@@ -6,6 +6,8 @@ import java.security.GeneralSecurityException;
 
 import org.junit.jupiter.api.Test;
 
+import com.itextpdf.signatures.OCSPVerifier;
+import com.itextpdf.signatures.OcspClientBouncyCastle;
 import com.itextpdf.signatures.TSAClientBouncyCastle;
 
 import mkl.itext.signing.pkcs11.BaseSignSimple;
@@ -34,6 +36,7 @@ class TestSignSimple extends BaseSignSimple {
         alias = null;
         pin = (msWindowsOs ? "1234" : "5678").toCharArray();
         result = new File(RESULT_FOLDER, "circles-pkcs11-signed-simple-entrust-sas.pdf");
+        ocspClient = new OcspClientBouncyCastle(null);
         tsaClient = new TSAClientBouncyCastle("http://timestamp.entrust.net/TSS/RFC3161sha2TS");
         testSignSimple();
     }
