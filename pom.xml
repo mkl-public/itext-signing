@@ -85,6 +85,7 @@
 		</dependencies>
 	</dependencyManagement>
 	<modules>
+		<module>itext7-sign-fips</module>
 		<module>aws-kms</module>
 		<module>jce-utimaco</module>
 		<module>pkcs11</module>
