@@ -69,6 +69,28 @@ The matching PKCS#11 configuration file created as <tt>pkcs11-beid.cfg</tt> look
     library = "c:/Program Files (x86)/Belgium Identity Card/FireFox Plugin Manifests/beid_ff_pkcs11_64.dll"
     slot = 0
 
+## D-Trust cards
+
+The next PKCS#11 device tested here are D-Trust qualified signature cards 3.1 in Reiner SCT cyberJack e-com card readers addressed via the Nexus Personal PKCS#11 driver. The cards have been initialized for testing with the PIN `12345678`.
+
+A matching PKCS#11 configuration file for the SunPKCS11 security provider created as <tt>pkcs11-dtrust.cfg</tt> looks like this:
+
+    name = DTrustOnNexus
+    library = "c:/Program Files (x86)/Personal/bin64/personal64.dll"
+    slot = 1
+
+Unfortunately it turned out that the SunPKCS11 security provider cannot properly operate this device: When looking for keys and certificates on a PKCS11 device it iterates over the private keys and associates each of them with the respective certificate with the same ID. The Nexus driver for D-Trust cards, though, offers all certificates with the same ID and SunPKCS11 uses the one it retrieves first, by chance the root certificate, not the signer certificate. Thus, private key and certificate do not cryptographically match, making the generated signatures invalid.
+
+Thus, a different PKCS#11 security provider was tested, the [IAIK PKCS#11 Provider](https://jce.iaik.tugraz.at/products/core-crypto-toolkits/pkcs11-provider/). In contrast to the SunPKCS11 provider the IAIK provider does not only offer the pairing of the private key and the _first_ certificate with the same ID but instead _all_ pairings of the private key with such a certificate, with an alias derived from the label of the certificate. By selecting the pairing for the alias "Signaturzertifikat", therefore, the used private key and certificate do cryptographically match, making valid signing possible.
+
+The IAIK PKCS#11 provider and its dependencies cannot be retrieved from public maven repositories; instead one has to retrieve them from the IAIK site, the [PKCS#11 Provider](https://jce.iaik.tugraz.at/products/core-crypto-toolkits/pkcs11-provider/) and the [PKCS#11 Wrapper](https://jce.iaik.tugraz.at/products/core-crypto-toolkits/pkcs11-wrapper/) including the IAIK-JCE library. For use beyond evaluation please read up on the offered licenses and choose to match your project.
+
+Once you have retrieved copies of those artifacts, you can deploy them locally like this to match the assumptions in the pom files:
+
+    mvn install:install-file -Dfile=iaik_jce_full.jar -DgroupId=iaik -DartifactId=iaik_jce_full -Dversion=5.51 -Dpackaging=jar
+    mvn install:install-file -Dfile=iaikPkcs11Wrapper_1.6.2.jar -DgroupId=iaik -DartifactId=iaikPkcs11Wrapper -Dversion=1.6.2 -Dpackaging=jar
+    mvn install:install-file -Dfile=iaikPkcs11Provider.jar -DgroupId=iaik -DartifactId=iaikPkcs11Provider -Dversion=1.7 -Dpackaging=jar
+
 # Selecting a PKCS#11 Device
 
 The PKCS#11 device used by a generic test can be controlled via an environment variable, <tt>PKCS11_CONFIG</tt> which can either be set to the path and name of a PKCS#11 configuration file or one of the fixed values <tt>SOFTHSM</tt> and <tt>UTIMACO</tt>. An alias (if required) can be selected in the environment variable <tt>PKCS11_ALIAS</tt>. The PIN used for signing can be selected using the environment variable <tt>PKCS11_PIN</tt> and defaults to <tt>5678</tt>.
