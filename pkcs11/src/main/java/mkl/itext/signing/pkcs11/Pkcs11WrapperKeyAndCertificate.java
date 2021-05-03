@@ -2,15 +2,25 @@ package mkl.itext.signing.pkcs11;
 
 import static iaik.pkcs.pkcs11.Module.SlotRequirement.ALL_SLOTS;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.math.BigInteger;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
+import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.DefaultSignatureAlgorithmIdentifierFinder;
+import org.bouncycastle.operator.RuntimeOperatorException;
+
+import iaik.pkcs.pkcs11.Mechanism;
 import iaik.pkcs.pkcs11.Session;
 import iaik.pkcs.pkcs11.Slot;
 import iaik.pkcs.pkcs11.Token;
@@ -18,6 +28,7 @@ import iaik.pkcs.pkcs11.TokenException;
 import iaik.pkcs.pkcs11.objects.Key;
 import iaik.pkcs.pkcs11.objects.PrivateKey;
 import iaik.pkcs.pkcs11.objects.X509PublicKeyCertificate;
+import iaik.pkcs.pkcs11.wrapper.PKCS11Constants;
 
 /**
  * @author mkl
@@ -144,8 +155,7 @@ public class Pkcs11WrapperKeyAndCertificate implements AutoCloseable {
             break;
         }
 
-        if (!found)
-        {
+        if (!found) {
             this.alias = null;
             this.keyType = null;
             this.privateKey = null;
@@ -179,5 +189,68 @@ public class Pkcs11WrapperKeyAndCertificate implements AutoCloseable {
                 session = null;
             }
         }
+    }
+
+    public ContentSigner buildContentSigner(String signatureAlgorithm) throws TokenException {
+        AlgorithmIdentifier signAlgorithmIdentifier = new DefaultSignatureAlgorithmIdentifierFinder().find(signatureAlgorithm);
+        Long mechanism = MECHANISM_BY_ALGORITHM_LOWER.get(signatureAlgorithm.toLowerCase());
+        if (mechanism == null)
+            throw new IllegalArgumentException(String.format("No applicable mechanism for '%s'", signatureAlgorithm));
+        session.signInit(Mechanism.get(mechanism), privateKey);
+
+        return new ContentSigner() {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+            @Override
+            public byte[] getSignature() {
+                try {
+                    byte[] signature = session.sign(baos.toByteArray());
+                    // TODO: In case of ECDSA check the format of the returned bytes and transform if necessary
+                    return signature;
+                } catch (TokenException e) {
+                    throw new RuntimeOperatorException(e.getMessage(), e);
+                }
+            }
+            
+            @Override
+            public OutputStream getOutputStream() {
+                return baos;
+            }
+            
+            @Override
+            public AlgorithmIdentifier getAlgorithmIdentifier() {
+                return signAlgorithmIdentifier;
+            }
+        };
+    }
+
+    static Map<String, Long> MECHANISM_BY_ALGORITHM_LOWER = new HashMap<>();
+
+    static {
+        MECHANISM_BY_ALGORITHM_LOWER.put("sha1withdsa", PKCS11Constants.CKM_DSA_SHA1);
+        MECHANISM_BY_ALGORITHM_LOWER.put("sha224withdsa", PKCS11Constants.CKM_DSA_SHA224);
+        MECHANISM_BY_ALGORITHM_LOWER.put("sha256withdsa", PKCS11Constants.CKM_DSA_SHA256);
+        MECHANISM_BY_ALGORITHM_LOWER.put("sha384withdsa", PKCS11Constants.CKM_DSA_SHA384);
+        MECHANISM_BY_ALGORITHM_LOWER.put("sha512withdsa", PKCS11Constants.CKM_DSA_SHA512);
+        MECHANISM_BY_ALGORITHM_LOWER.put("sha1withecdsa", PKCS11Constants.CKM_ECDSA_SHA1);
+        MECHANISM_BY_ALGORITHM_LOWER.put("sha224withecdsa", PKCS11Constants.CKM_ECDSA_SHA224);
+        MECHANISM_BY_ALGORITHM_LOWER.put("sha256withecdsa", PKCS11Constants.CKM_ECDSA_SHA256);
+        MECHANISM_BY_ALGORITHM_LOWER.put("sha384withecdsa", PKCS11Constants.CKM_ECDSA_SHA384);
+        MECHANISM_BY_ALGORITHM_LOWER.put("sha512withecdsa", PKCS11Constants.CKM_ECDSA_SHA512);
+        MECHANISM_BY_ALGORITHM_LOWER.put("sha1withplain-ecdsa", PKCS11Constants.CKM_ECDSA_SHA1);
+        MECHANISM_BY_ALGORITHM_LOWER.put("sha224withplain-ecdsa", PKCS11Constants.CKM_ECDSA_SHA224);
+        MECHANISM_BY_ALGORITHM_LOWER.put("sha256withplain-ecdsa", PKCS11Constants.CKM_ECDSA_SHA256);
+        MECHANISM_BY_ALGORITHM_LOWER.put("sha384withplain-ecdsa", PKCS11Constants.CKM_ECDSA_SHA384);
+        MECHANISM_BY_ALGORITHM_LOWER.put("sha512withplain-ecdsa", PKCS11Constants.CKM_ECDSA_SHA512);
+        MECHANISM_BY_ALGORITHM_LOWER.put("sha1withrsa", PKCS11Constants.CKM_SHA1_RSA_PKCS);
+        MECHANISM_BY_ALGORITHM_LOWER.put("sha224withrsa", PKCS11Constants.CKM_SHA224_RSA_PKCS);
+        MECHANISM_BY_ALGORITHM_LOWER.put("sha256withrsa", PKCS11Constants.CKM_SHA256_RSA_PKCS);
+        MECHANISM_BY_ALGORITHM_LOWER.put("sha384withrsa", PKCS11Constants.CKM_SHA384_RSA_PKCS);
+        MECHANISM_BY_ALGORITHM_LOWER.put("sha512withrsa", PKCS11Constants.CKM_SHA512_RSA_PKCS);
+        MECHANISM_BY_ALGORITHM_LOWER.put("sha1withrsaandmgf1", PKCS11Constants.CKM_SHA1_RSA_PKCS_PSS);
+        MECHANISM_BY_ALGORITHM_LOWER.put("sha224withrsaandmgf1", PKCS11Constants.CKM_SHA224_RSA_PKCS_PSS);
+        MECHANISM_BY_ALGORITHM_LOWER.put("sha256withrsaandmgf1", PKCS11Constants.CKM_SHA256_RSA_PKCS_PSS);
+        MECHANISM_BY_ALGORITHM_LOWER.put("sha384withrsaandmgf1", PKCS11Constants.CKM_SHA384_RSA_PKCS_PSS);
+        MECHANISM_BY_ALGORITHM_LOWER.put("sha512withrsaandmgf1", PKCS11Constants.CKM_SHA512_RSA_PKCS_PSS);
     }
 }
