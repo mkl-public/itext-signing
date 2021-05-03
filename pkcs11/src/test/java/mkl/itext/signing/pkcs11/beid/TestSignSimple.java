@@ -15,11 +15,6 @@ import mkl.itext.signing.pkcs11.BaseSignSimple;
  * configured and initialized on the original development
  * machine.
  * </p>
- * <p>
- * Please remember to set the <code>CS_PKCS11_R2_CFG</code>
- * environment variable to point to the Utimaco configuration
- * file <code>cs_pkcs11_R2.cfg</code>.
- * </p>
  * 
  * @author mkl
  */
