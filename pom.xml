@@ -90,6 +90,7 @@
 		<module>jce-utimaco</module>
 		<module>pkcs11</module>
 		<module>pkcs11-jdk8</module>
+		<module>simple</module>
 	</modules>
 	<build>
 		<plugins>
