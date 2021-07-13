@@ -55,14 +55,12 @@ namespace itext.signing.simple_Net
 
         public byte[] Sign(byte[] message)
         {
-            if (certificate.PrivateKey is RSA)
+            if (certificate.PrivateKey is RSA rsa)
             {
-                RSA rsa = (RSA)certificate.PrivateKey;
                 return rsa.SignData(message, new HashAlgorithmName(hashAlgorithm), RSASignaturePadding.Pkcs1);
             }
-            else if (certificate.PrivateKey is DSA)
+            else if (certificate.PrivateKey is DSA dsa)
             {
-                DSA dsa = (DSA)certificate.PrivateKey;
                 return dsa.SignData(message, new HashAlgorithmName(hashAlgorithm));
             }
             else
