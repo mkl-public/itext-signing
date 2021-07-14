@@ -1,4 +1,6 @@
 ﻿using iText.Signatures;
+using Org.BouncyCastle.Asn1;
+using Org.BouncyCastle.Math;
 using System;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
@@ -33,14 +35,14 @@ namespace itext.signing.simple_Net
                 throw new ArgumentException("No private key.");
             this.certificate = certificate;
             this.hashAlgorithm = DigestAlgorithms.GetDigest(DigestAlgorithms.GetAllowedDigest(hashAlgorithm));
-            if (certificate.PrivateKey is RSA)
+            if (certificate.GetRSAPrivateKey() != null)
                 encryptionAlgorithm = "RSA";
-            else if (certificate.PrivateKey is DSA)
+            else if (certificate.GetDSAPrivateKey() != null)
                 encryptionAlgorithm = "DSA";
-            else if (certificate.PrivateKey is ECDsa)
+            else if (certificate.GetECDsaPrivateKey() != null)
                 encryptionAlgorithm = "ECDSA";
             else
-                throw new ArgumentException("Unknown encryption algorithm " + certificate.PrivateKey);
+                throw new ArgumentException("Unknown encryption algorithm " + certificate.GetKeyAlgorithm());
         }
 
         public string GetEncryptionAlgorithm()
@@ -55,19 +57,25 @@ namespace itext.signing.simple_Net
 
         public byte[] Sign(byte[] message)
         {
-            if (certificate.PrivateKey is RSA rsa)
+            switch(encryptionAlgorithm)
             {
-                return rsa.SignData(message, new HashAlgorithmName(hashAlgorithm), RSASignaturePadding.Pkcs1);
+                case "RSA":
+                    return certificate.GetRSAPrivateKey().SignData(message, new HashAlgorithmName(hashAlgorithm), RSASignaturePadding.Pkcs1);
+                case "DSA":
+                    return PlainToDer(certificate.GetDSAPrivateKey().SignData(message, new HashAlgorithmName(hashAlgorithm)));
+                case "ECDSA":
+                    return certificate.GetECDsaPrivateKey().SignData(message, new HashAlgorithmName(hashAlgorithm));
+                default:
+                    throw new ArgumentException("Unknown encryption algorithm " + encryptionAlgorithm);
             }
-            else if (certificate.PrivateKey is DSA dsa)
-            {
-                return dsa.SignData(message, new HashAlgorithmName(hashAlgorithm));
-            }
-            else
-            {
-                ECDsa ecdsa = (ECDsa)certificate.PrivateKey;
-                return ecdsa.SignData(message, new HashAlgorithmName(hashAlgorithm));
-            }
+        }
+
+        byte[] PlainToDer(byte[] plain)
+        {
+            int valueLength = plain.Length / 2;
+            BigInteger r = new BigInteger(1, plain, 0, valueLength);
+            BigInteger s = new BigInteger(1, plain, valueLength, valueLength);
+            return new DerSequence(new DerInteger(r), new DerInteger(s)).GetEncoded(Asn1Encodable.Der);
         }
     }
 }
