@@ -7,9 +7,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.GeneralSecurityException;
+import java.security.KeyStore;
+import java.security.PrivateKey;
 import java.security.Security;
+import java.security.cert.Certificate;
+import java.util.Enumeration;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -17,10 +22,13 @@ import com.itextpdf.kernel.pdf.PdfReader;
 import com.itextpdf.kernel.pdf.StampingProperties;
 import com.itextpdf.signatures.BouncyCastleDigest;
 import com.itextpdf.signatures.IExternalDigest;
+import com.itextpdf.signatures.IExternalSignature;
 import com.itextpdf.signatures.PdfSigner;
 import com.itextpdf.signatures.PdfSigner.CryptoStandard;
+import com.itextpdf.signatures.PrivateKeySignature;
 
 import CryptoServerAPI.CryptoServerException;
+import CryptoServerJCE.CryptoServerProvider;
 
 /**
  * @author mkl
@@ -35,9 +43,13 @@ class TestSignSimple {
         Security.addProvider(provider);
     }
 
+    /**
+     * Test using the custom {@link UtimacoJceSignature} implementation
+     * of {@link IExternalSignature}.
+     */
     @Test
-    void testSignSimple() throws IOException, CryptoServerException, GeneralSecurityException {
-        String config = "Device = 3001@127.0.0.1\n"
+    void testSignSimpleUtimacoJceSignature() throws IOException, CryptoServerException, GeneralSecurityException {
+        String config = "Device = 3001@192.168.178.49\n"
                 + "DefaultUser = JCE\n"
                 + "KeyGroup = JCE";
         UtimacoJceSignature signature = new UtimacoJceSignature(new ByteArrayInputStream(config.getBytes()))
@@ -45,12 +57,47 @@ class TestSignSimple {
 
         try (   InputStream resource = getClass().getResourceAsStream("/circles.pdf");
                 PdfReader pdfReader = new PdfReader(resource);
-                OutputStream result = new FileOutputStream(new File(RESULT_FOLDER, "circles-utimaco-signed-simple.pdf"))) {
+                OutputStream result = new FileOutputStream(new File(RESULT_FOLDER, "circles-utimaco-signed-simple-specific.pdf"))) {
             PdfSigner pdfSigner = new PdfSigner(pdfReader, result, new StampingProperties().useAppendMode());
 
             IExternalDigest externalDigest = new BouncyCastleDigest();
-            pdfSigner.signDetached(externalDigest , signature, signature.getChain(), null, null, null, 0, CryptoStandard.CMS);
+            pdfSigner.signDetached(externalDigest, signature, signature.getChain(), null, null, null, 0, CryptoStandard.CMS);
         }
     }
 
+    /**
+     * Test using the iText {@link PrivateKeySignature} implementation
+     * of {@link IExternalSignature}.
+     */
+    @Test
+    void testSignSimpleGeneric() throws NumberFormatException, IOException, CryptoServerException, GeneralSecurityException {
+        String config = "Device = 3001@192.168.178.49\n"
+                + "DefaultUser = JCE\n"
+                + "KeyGroup = JCE";
+        char[] pin = "5678".toCharArray();
+        CryptoServerProvider provider = new CryptoServerProvider(new ByteArrayInputStream(config.getBytes()));
+        Security.removeProvider(provider.getName());
+        Security.addProvider(provider);
+
+        KeyStore ks = KeyStore.getInstance("CryptoServer", provider);
+        ks.load(null, pin);
+
+        Enumeration<String> aliases = ks.aliases();
+        Assertions.assertTrue(aliases.hasMoreElements(), "No alias in CryptoServerProvider key store");
+        String alias = aliases.nextElement();
+        PrivateKey pk = (PrivateKey) ks.getKey(alias, pin);
+        Assertions.assertNotNull(pk, "No key for alias");
+        Certificate[] chain = ks.getCertificateChain(alias);
+        Assertions.assertNotNull(chain, "No chain for alias");
+
+        IExternalSignature signature = new PrivateKeySignature(pk, "SHA256", provider.getName());
+        try (   InputStream resource = getClass().getResourceAsStream("/circles.pdf");
+                PdfReader pdfReader = new PdfReader(resource);
+                OutputStream result = new FileOutputStream(new File(RESULT_FOLDER, "circles-utimaco-signed-simple-generic.pdf"))) {
+            PdfSigner pdfSigner = new PdfSigner(pdfReader, result, new StampingProperties().useAppendMode());
+
+            IExternalDigest externalDigest = new BouncyCastleDigest();
+            pdfSigner.signDetached(externalDigest, signature, chain, null, null, null, 0, CryptoStandard.CMS);
+        }
+    }
 }
