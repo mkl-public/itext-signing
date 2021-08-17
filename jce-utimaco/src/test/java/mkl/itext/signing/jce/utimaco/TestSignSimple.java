@@ -11,6 +11,8 @@ import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.Security;
 import java.security.cert.Certificate;
+import java.security.spec.MGF1ParameterSpec;
+import java.security.spec.PSSParameterSpec;
 import java.util.Enumeration;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -18,6 +20,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import com.itextpdf.kernel.pdf.PdfName;
 import com.itextpdf.kernel.pdf.PdfReader;
 import com.itextpdf.kernel.pdf.StampingProperties;
 import com.itextpdf.signatures.BouncyCastleDigest;
@@ -98,6 +101,59 @@ class TestSignSimple {
 
             IExternalDigest externalDigest = new BouncyCastleDigest();
             pdfSigner.signDetached(externalDigest, signature, chain, null, null, null, 0, CryptoStandard.CMS);
+        }
+    }
+
+    /**
+     * Test using the custom {@link UtimacoJceSignatureContainer} implementation
+     * of {@link IExternalSignature} to create a RSA signature with PKCS#1 v1.5
+     * padding.
+     */
+    @Test
+    void testSignSimpleUtimacoJceSignatureContainerRsaPkcs1() throws IOException, CryptoServerException, GeneralSecurityException {
+        String config = "Device = 3001@192.168.178.49\n"
+                + "DefaultUser = JCE\n"
+                + "KeyGroup = JCE";
+        CryptoServerProvider provider = new CryptoServerProvider(new ByteArrayInputStream(config.getBytes()));
+        Security.removeProvider(provider.getName());
+        Security.addProvider(provider);
+
+        UtimacoJceSignatureContainer signature = new UtimacoJceSignatureContainer(
+                provider, PdfName.Adbe_pkcs7_detached)
+                .select(null, "5678".toCharArray()).with("SHA256withRSA", null);
+
+        try (   InputStream resource = getClass().getResourceAsStream("/circles.pdf");
+                PdfReader pdfReader = new PdfReader(resource);
+                OutputStream result = new FileOutputStream(new File(RESULT_FOLDER, "circles-utimaco-signed-simple-container-specific-pkcs1.pdf"))) {
+            PdfSigner pdfSigner = new PdfSigner(pdfReader, result, new StampingProperties().useAppendMode());
+
+            pdfSigner.signExternalContainer(signature, 8192);
+        }
+    }
+
+    /**
+     * Test using the custom {@link UtimacoJceSignatureContainer} implementation
+     * of {@link IExternalSignature} to create a RSASSA-PSS signature.
+     */
+    @Test
+    void testSignSimpleUtimacoJceSignatureContainerRsaSsaPss() throws IOException, CryptoServerException, GeneralSecurityException {
+        String config = "Device = 3001@192.168.178.49\n"
+                + "DefaultUser = JCE\n"
+                + "KeyGroup = JCE";
+        CryptoServerProvider provider = new CryptoServerProvider(new ByteArrayInputStream(config.getBytes()));
+        Security.removeProvider(provider.getName());
+        Security.addProvider(provider);
+
+        UtimacoJceSignatureContainer signature = new UtimacoJceSignatureContainer(
+                provider, PdfName.Adbe_pkcs7_detached)
+                .select(null, "5678".toCharArray()).with("SHA256withRSA", new PSSParameterSpec("SHA-256", "MGF1", MGF1ParameterSpec.SHA256, 32, 1));
+
+        try (   InputStream resource = getClass().getResourceAsStream("/circles.pdf");
+                PdfReader pdfReader = new PdfReader(resource);
+                OutputStream result = new FileOutputStream(new File(RESULT_FOLDER, "circles-utimaco-signed-simple-container-specific-pss.pdf"))) {
+            PdfSigner pdfSigner = new PdfSigner(pdfReader, result, new StampingProperties().useAppendMode());
+
+            pdfSigner.signExternalContainer(signature, 8192);
         }
     }
 }
