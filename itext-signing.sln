@@ -8,14 +8,17 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "pkcs11.Net-test", "pkcs11.Net-test\pkcs11.Net-test.csproj", "{3A8AC7D8-C3B9-44CD-AB67-29539B4F530B}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "cng-utimaco.Net-test", "cng-utimaco.Net-test\cng-utimaco.Net-test.csproj", "{50F26F73-23F8-404E-B90E-38DBF393E338}"
+	ProjectSection(ProjectDependencies) = postProject
+		{04E41076-DAE9-47CB-849D-33FAE6356827} = {04E41076-DAE9-47CB-849D-33FAE6356827}
+	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "aws-kms.Net", "aws-kms.Net\aws-kms.Net.csproj", "{793E9C47-1D43-471A-8E9B-0C4D3F39576C}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "aws-kms.Net-test", "aws-kms.Net-test\aws-kms.Net-test.csproj", "{5DBC7FC8-7C41-4237-B1E9-51C94038CE73}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "simple.Net", "simple.Net\simple.Net.csproj", "{04E41076-DAE9-47CB-849D-33FAE6356827}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "simple.Net", "simple.Net\simple.Net.csproj", "{04E41076-DAE9-47CB-849D-33FAE6356827}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "simple.Net-test", "simple.Net-test\simple.Net-test.csproj", "{05A047E9-1135-46AC-863D-BDDF3E6B5A25}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "simple.Net-test", "simple.Net-test\simple.Net-test.csproj", "{05A047E9-1135-46AC-863D-BDDF3E6B5A25}"
 	ProjectSection(ProjectDependencies) = postProject
 		{04E41076-DAE9-47CB-849D-33FAE6356827} = {04E41076-DAE9-47CB-849D-33FAE6356827}
 	EndProjectSection

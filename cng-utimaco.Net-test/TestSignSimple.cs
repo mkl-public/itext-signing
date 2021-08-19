@@ -1,13 +1,14 @@
 ﻿using iText.Kernel.Pdf;
 using iText.Signatures;
 using NUnit.Framework;
-using System;
-using System.Collections.Generic;
+using Org.BouncyCastle.Asn1.X509;
+using BcX509 = Org.BouncyCastle.X509;
 using System.IO;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
-using System.Text;
 using static iText.Signatures.PdfSigner;
+using itext.signing.simple_Net;
+using System.Security.Cryptography.Pkcs;
 
 namespace itext.signing.cng_utimaco_Net
 {
@@ -48,7 +49,7 @@ namespace itext.signing.cng_utimaco_Net
             }
 
             using (PdfReader pdfReader = new PdfReader(testFileName))
-            using (FileStream result = File.Create("circles-pkcs11-signed-simple.pdf"))
+            using (FileStream result = File.Create("circles-cng-signed-simple-custom.pdf"))
             {
                 PdfSigner pdfSigner = new PdfSigner(pdfReader, result, new StampingProperties().UseAppendMode());
                 X509Certificate2ECDsaSignature signature = new X509Certificate2ECDsaSignature(certificate);
@@ -58,6 +59,58 @@ namespace itext.signing.cng_utimaco_Net
             
         }
 
+        [Test]
+        public void TestCngSignSimpleGeneric()
+        {
+            string testFileName = @"..\..\..\resources\circles.pdf";
+
+            X509Certificate2 certificate;
+            using (X509Store store = new X509Store(StoreName.My, StoreLocation.CurrentUser, OpenFlags.ReadOnly))
+            {
+                X509Certificate2Collection certificates = store.Certificates;
+                X509Certificate2Collection signingcertificates = certificates.Find(X509FindType.FindBySubjectName, "Utimaco CNG Signing Test", false);
+                certificate = signingcertificates[0];
+            }
+
+            BcX509.X509Certificate bcCertificate = new BcX509.X509Certificate(X509CertificateStructure.GetInstance(certificate.RawData));
+            BcX509.X509Certificate[] chain = { bcCertificate };
+
+            using (PdfReader pdfReader = new PdfReader(testFileName))
+            using (FileStream result = File.Create("circles-cng-signed-simple-generic.pdf"))
+            {
+                PdfSigner pdfSigner = new PdfSigner(pdfReader, result, new StampingProperties().UseAppendMode());
+                X509Certificate2Signature signature = new X509Certificate2Signature(certificate, "SHA512");
+
+                pdfSigner.SignDetached(signature, chain, null, null, null, 0, CryptoStandard.CMS);
+            }
+        }
+
+        [Test]
+        public void TestCngSignSimpleGenericContainer()
+        {
+            string testFileName = @"..\..\..\resources\circles.pdf";
+
+            X509Certificate2 certificate;
+            using (X509Store store = new X509Store(StoreName.My, StoreLocation.CurrentUser, OpenFlags.ReadOnly))
+            {
+                X509Certificate2Collection certificates = store.Certificates;
+                X509Certificate2Collection signingcertificates = certificates.Find(X509FindType.FindBySubjectName, "Utimaco CNG Signing Test", false);
+                certificate = signingcertificates[0];
+            }
+
+            X509Certificate2SignatureContainer signature = new X509Certificate2SignatureContainer(certificate, signer => {
+                signer.DigestAlgorithm = Oid.FromFriendlyName("SHA512", OidGroup.HashAlgorithm);
+                signer.SignedAttributes.Add(new Pkcs9SigningTime());
+            });
+
+            using (PdfReader pdfReader = new PdfReader(testFileName))
+            using (FileStream result = File.Create("circles-cng-signed-simple-generic-container.pdf"))
+            {
+                PdfSigner pdfSigner = new PdfSigner(pdfReader, result, new StampingProperties().UseAppendMode());
+
+                pdfSigner.SignExternalContainer(signature, 8192);
+            }
+        }
     }
 
     class X509Certificate2ECDsaSignature : IExternalSignature
