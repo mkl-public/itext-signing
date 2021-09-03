@@ -7,10 +7,13 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.GeneralSecurityException;
 import java.security.Security;
+import java.security.spec.MGF1ParameterSpec;
+import java.security.spec.PSSParameterSpec;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.jupiter.api.BeforeAll;
 
+import com.itextpdf.kernel.pdf.PdfName;
 import com.itextpdf.kernel.pdf.PdfReader;
 import com.itextpdf.kernel.pdf.StampingProperties;
 import com.itextpdf.signatures.BouncyCastleDigest;
@@ -49,6 +52,19 @@ public class BaseSignSimple {
 
             IExternalDigest externalDigest = new BouncyCastleDigest();
             pdfSigner.signDetached(externalDigest , signature, signature.getChain(), null, null, tsaClient, 0, CryptoStandard.CMS);
+        }
+    }
+
+    protected void testSignSimpleContainer() throws IOException, GeneralSecurityException {
+        Pkcs11SignatureContainer signature = (config.startsWith("--") ? new Pkcs11SignatureContainer(config, PdfName.Adbe_pkcs7_detached) : new Pkcs11SignatureContainer(new File(config), PdfName.Adbe_pkcs7_detached))
+                .select(alias, pin).with("SHA256withRSASSA-PSS", new PSSParameterSpec("SHA-256", "MGF1", MGF1ParameterSpec.SHA256, 32, 1));
+
+        try (   InputStream resource = getClass().getResourceAsStream("/circles.pdf");
+                PdfReader pdfReader = new PdfReader(resource);
+                OutputStream resultStream = new FileOutputStream(result)    ) {
+            PdfSigner pdfSigner = new PdfSigner(pdfReader, resultStream, new StampingProperties().useAppendMode());
+
+            pdfSigner.signExternalContainer(signature, 8192);
         }
     }
 

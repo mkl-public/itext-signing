@@ -31,4 +31,14 @@ class TestSignSimple extends BaseSignSimple {
         testSignSimple();
     }
 
+    @Test
+    void testContainer() throws IOException, GeneralSecurityException {
+        config = "--name = BeID\n"
+                + "library = \"c:/Program Files (x86)/Belgium Identity Card/FireFox Plugin Manifests/beid_ff_pkcs11_64.dll\"\n"
+                + "slot = 0\n";
+        alias = "Signature";
+        pin = "1234".toCharArray();
+        result = new File(RESULT_FOLDER, "circles-pkcs11-signed-simple-beid-container.pdf");
+        testSignSimpleContainer();
+    }
 }
