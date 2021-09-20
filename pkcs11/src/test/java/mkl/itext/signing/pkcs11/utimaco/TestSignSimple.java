@@ -36,4 +36,14 @@ class TestSignSimple extends BaseSignSimple {
         testSignSimple();
     }
 
+    @Test
+    void testContainer() throws IOException, GeneralSecurityException {
+        config = "--name = Utimaco\n"
+                + "library = d:/Program Files/Utimaco/CryptoServer/Lib/cs_pkcs11_R2.dll\n"
+                + "slot = 0\n";
+        alias = null;
+        pin = "5678".toCharArray();
+        result = new File(RESULT_FOLDER, "circles-pkcs11-signed-simple-utimaco-container.pdf");
+        testSignSimpleContainer();
+    }
 }
