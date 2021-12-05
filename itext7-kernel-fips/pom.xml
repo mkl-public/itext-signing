@@ -1,20 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
+
   <parent>
     <groupId>com.itextpdf</groupId>
     <artifactId>root</artifactId>
     <version>7.1.15-SNAPSHOT</version>
     <relativePath>../../../itext/itext7.1.15</relativePath>
   </parent>
+
   <artifactId>kernel-FIPS</artifactId>
+
   <name>iText 7 - kernel (FIPS version)</name>
   <url>https://itextpdf.com/</url>
+
   <properties>
     <bc-fips.version>1.0.2</bc-fips.version>
     <bcpkix-fips.version>1.0.3</bcpkix-fips.version>
     <sonar.exclusions>**/com/itextpdf/kernel/xmp/**</sonar.exclusions>
   </properties>
+
   <dependencies>
     <dependency>
       <groupId>com.itextpdf</groupId>
@@ -39,11 +44,24 @@
     </dependency>
     <dependency>
       <groupId>com.itextpdf</groupId>
+      <artifactId>layout</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>com.itextpdf</groupId>
+          <artifactId>kernel</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>com.itextpdf</groupId>
       <artifactId>pdftest</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
+
   <build>
     <plugins>
       <plugin>
