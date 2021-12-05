@@ -43,10 +43,22 @@
  */
 package com.itextpdf.kernel.crypto.securityhandler;
 
+import java.io.OutputStream;
+import java.math.BigInteger;
+import java.security.GeneralSecurityException;
+import java.security.MessageDigest;
+import java.util.Arrays;
+
+import javax.crypto.Cipher;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.itextpdf.io.LogMessageConstant;
 import com.itextpdf.io.util.StreamUtil;
 import com.itextpdf.kernel.PdfException;
-import com.itextpdf.kernel.crypto.AESCipherCBCnoPad;
 import com.itextpdf.kernel.crypto.AesDecryptor;
 import com.itextpdf.kernel.crypto.BadPasswordException;
 import com.itextpdf.kernel.crypto.IDecryptor;
@@ -59,13 +71,6 @@ import com.itextpdf.kernel.pdf.PdfLiteral;
 import com.itextpdf.kernel.pdf.PdfName;
 import com.itextpdf.kernel.pdf.PdfNumber;
 import com.itextpdf.kernel.pdf.PdfVersion;
-import java.io.OutputStream;
-import java.math.BigInteger;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class StandardHandlerUsingAes256 extends StandardSecurityHandler {
 
@@ -140,6 +145,8 @@ public class StandardHandlerUsingAes256 extends StandardSecurityHandler {
 
             byte[] hash;
 
+            final Cipher cipher = Cipher.getInstance("AES/CBC/NoPadding", "BCFIPS");
+
             // Algorithm 8.1
             hash = computeHash(userPassword, userValAndKeySalt, 0, 8);
             userKey = Arrays.copyOf(hash, 48);
@@ -147,8 +154,10 @@ public class StandardHandlerUsingAes256 extends StandardSecurityHandler {
 
             // Algorithm 8.2
             hash = computeHash(userPassword, userValAndKeySalt, 8, 8);
-            AESCipherCBCnoPad ac = new AESCipherCBCnoPad(true, hash);
-            ueKey = ac.processBlock(nextObjectKey, 0, nextObjectKey.length);
+            cipher.init(Cipher.ENCRYPT_MODE,
+                    new SecretKeySpec(hash, "AES"),
+                    new IvParameterSpec(new byte[16]));
+            ueKey = cipher.update(nextObjectKey, 0, nextObjectKey.length);
 
 
             // Algorithm 9.1
@@ -158,8 +167,10 @@ public class StandardHandlerUsingAes256 extends StandardSecurityHandler {
 
             // Algorithm 9.2
             hash = computeHash(ownerPassword, ownerValAndKeySalt, 8, 8, userKey);
-            ac = new AESCipherCBCnoPad(true, hash);
-            oeKey = ac.processBlock(nextObjectKey, 0, nextObjectKey.length);
+            cipher.init(Cipher.ENCRYPT_MODE,
+                    new SecretKeySpec(hash, "AES"),
+                    new IvParameterSpec(new byte[16]));
+            oeKey = cipher.update(nextObjectKey, 0, nextObjectKey.length);
 
 
             // Algorithm 10
@@ -176,8 +187,10 @@ public class StandardHandlerUsingAes256 extends StandardSecurityHandler {
             permsp[9] = (byte) 'a';
             permsp[10] = (byte) 'd';
             permsp[11] = (byte) 'b';
-            ac = new AESCipherCBCnoPad(true, nextObjectKey);
-            aes256Perms = ac.processBlock(permsp, 0, permsp.length);
+            cipher.init(Cipher.ENCRYPT_MODE,
+                    new SecretKeySpec(nextObjectKey, "AES"),
+                    new IvParameterSpec(new byte[16]));
+            aes256Perms = cipher.update(permsp, 0, permsp.length);
 
             this.permissions = permissions;
             this.encryptMetadata = encryptMetadata;
@@ -236,30 +249,45 @@ public class StandardHandlerUsingAes256 extends StandardSecurityHandler {
             byte[] perms = getIsoBytes(encryptionDictionary.getAsString(PdfName.Perms));
             PdfNumber pValue = (PdfNumber) encryptionDictionary.get(PdfName.P);
 
+            // According to ISO 32000-2 the uValue is expected to be 48 bytes in length.
+            // Actual documents from the wild tend to have the uValue filled with zeroes
+            // to a 127 bytes length. As input to computeHash for owner password related
+            // operations, though, we must only use the 48 bytes.
+            if (uValue != null && uValue.length > 48)
+                uValue = Arrays.copyOf(uValue, 48);
+
             this.permissions = pValue.longValue();
 
             byte[] hash;
+
+            final Cipher cipher = Cipher.getInstance("AES/CBC/NoPadding");
 
             hash = computeHash(password, oValue, VALIDATION_SALT_OFFSET, SALT_LENGTH, uValue);
             usedOwnerPassword = compareArray(hash, oValue, 32);
 
             if (usedOwnerPassword) {
                 hash = computeHash(password, oValue, KEY_SALT_OFFSET, SALT_LENGTH, uValue);
-                AESCipherCBCnoPad ac = new AESCipherCBCnoPad(false, hash);
-                nextObjectKey = ac.processBlock(oeValue, 0, oeValue.length);
+                cipher.init(Cipher.DECRYPT_MODE,
+                        new SecretKeySpec(hash, "AES"),
+                        new IvParameterSpec(new byte[16]));
+                nextObjectKey = cipher.update(oeValue, 0, oeValue.length);
             } else {
                 hash = computeHash(password, uValue, VALIDATION_SALT_OFFSET, SALT_LENGTH);
                 if (!compareArray(hash, uValue, 32)) {
                     throw new BadPasswordException(PdfException.BadUserPassword);
                 }
                 hash = computeHash(password, uValue, KEY_SALT_OFFSET, SALT_LENGTH);
-                AESCipherCBCnoPad ac = new AESCipherCBCnoPad(false, hash);
-                nextObjectKey = ac.processBlock(ueValue, 0, ueValue.length);
+                cipher.init(Cipher.DECRYPT_MODE,
+                        new SecretKeySpec(hash, "AES"),
+                        new IvParameterSpec(new byte[16]));
+                nextObjectKey = cipher.update(ueValue, 0, ueValue.length);
             }
             nextObjectKeySize = 32;
 
-            AESCipherCBCnoPad ac = new AESCipherCBCnoPad(false, nextObjectKey);
-            byte[] decPerms = ac.processBlock(perms, 0, perms.length);
+            cipher.init(Cipher.DECRYPT_MODE,
+                    new SecretKeySpec(nextObjectKey, "AES"),
+                    new IvParameterSpec(new byte[16]));
+            byte[] decPerms = cipher.update(perms, 0, perms.length);
             if (decPerms[9] != (byte) 'a' || decPerms[10] != (byte) 'd' || decPerms[11] != (byte) 'b')
                 throw new BadPasswordException(PdfException.BadUserPassword);
             int permissionsDecoded = (decPerms[0] & 0xff) | ((decPerms[1] & 0xff) << 8)
@@ -280,12 +308,13 @@ public class StandardHandlerUsingAes256 extends StandardSecurityHandler {
         }
     }
 
-    private byte[] computeHash(byte[] password, byte[] salt, int saltOffset, int saltLen) throws NoSuchAlgorithmException {
+    private byte[] computeHash(byte[] password, byte[] salt, int saltOffset, int saltLen) throws GeneralSecurityException {
         return computeHash(password, salt, saltOffset, saltLen, null);
     }
 
-    private byte[] computeHash(byte[] password, byte[] salt, int saltOffset, int saltLen, byte[] userKey) throws NoSuchAlgorithmException {
+    private byte[] computeHash(byte[] password, byte[] salt, int saltOffset, int saltLen, byte[] userKey) throws GeneralSecurityException {
         MessageDigest mdSha256 = MessageDigest.getInstance("SHA-256");
+        final Cipher cipher = Cipher.getInstance("AES/CBC/NoPadding");
 
         mdSha256.update(password);
         mdSha256.update(salt, saltOffset, saltLen);
@@ -320,8 +349,10 @@ public class StandardHandlerUsingAes256 extends StandardSecurityHandler {
                 }
 
                 // b)
-                AESCipherCBCnoPad cipher = new AESCipherCBCnoPad(true, Arrays.copyOf(k, 16), Arrays.copyOfRange(k, 16, 32));
-                byte[] e = cipher.processBlock(k1, 0, k1.length);
+                cipher.init(Cipher.ENCRYPT_MODE,
+                        new SecretKeySpec(Arrays.copyOf(k, 16), "AES"),
+                        new IvParameterSpec(Arrays.copyOfRange(k, 16, 32)));
+                byte[] e = cipher.update(k1, 0, k1.length);
 
                 // c)
                 MessageDigest md = null;

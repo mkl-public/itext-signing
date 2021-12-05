@@ -45,9 +45,20 @@ package com.itextpdf.kernel.crypto;
 
 import com.itextpdf.kernel.PdfException;
 import java.io.IOException;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 
 public class OutputStreamAesEncryption extends OutputStreamEncryption {
-    protected AESCipher cipher;
+    protected Cipher cipher;
     private boolean finished;
 
     /**
@@ -62,11 +73,16 @@ public class OutputStreamAesEncryption extends OutputStreamEncryption {
         byte[] iv = IVGenerator.getIV();
         byte[] nkey = new byte[len];
         System.arraycopy(key, off, nkey, 0, len);
-        cipher = new AESCipher(true, nkey, iv);
         try {
+            cipher = Cipher.getInstance("AES/CBC/PKCS5Padding", "BCFIPS");
+            cipher.init(Cipher.ENCRYPT_MODE,
+                    new SecretKeySpec(nkey, "AES"),
+                    new IvParameterSpec(iv));
             write(iv);
         } catch (IOException e) {
             throw new PdfException(PdfException.PdfEncryption, e);
+        } catch (InvalidKeyException | InvalidAlgorithmParameterException | NoSuchAlgorithmException | NoSuchPaddingException | NoSuchProviderException e) {
+            throw new PdfException("Exception initializing AES cipher", e);
         }
     }
 
@@ -118,11 +134,13 @@ public class OutputStreamAesEncryption extends OutputStreamEncryption {
         if (!finished) {
             finished = true;
 
-            byte[] b = cipher.doFinal();
             try {
+                byte[] b = cipher.doFinal();
                 out.write(b, 0, b.length);
             } catch (IOException e) {
                 throw new PdfException(PdfException.PdfEncryption, e);
+            } catch (IllegalBlockSizeException | BadPaddingException e) {
+                throw new PdfException("Exception finalizing AES cipher", e);
             }
         }
     }

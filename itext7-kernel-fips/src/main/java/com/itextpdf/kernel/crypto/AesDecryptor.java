@@ -43,8 +43,25 @@
  */
 package com.itextpdf.kernel.crypto;
 
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.itextpdf.kernel.PdfException;
+
 public class AesDecryptor implements IDecryptor {
-    private AESCipher cipher;
+    Cipher cipher;
     private byte[] key;
     private boolean initiated;
     private byte[] iv = new byte[16];
@@ -71,7 +88,14 @@ public class AesDecryptor implements IDecryptor {
             len -= left;
             ivptr += left;
             if (ivptr == iv.length) {
-                cipher = new AESCipher(false, key, iv);
+                try {
+                    cipher = Cipher.getInstance("AES/CBC/PKCS5Padding", "BCFIPS");
+                    cipher.init(Cipher.DECRYPT_MODE,
+                            new SecretKeySpec(key, "AES"),
+                            new IvParameterSpec(iv));
+                } catch (InvalidKeyException | InvalidAlgorithmParameterException | NoSuchAlgorithmException | NoSuchPaddingException | NoSuchProviderException e) {
+                    throw new PdfException("Exception initializing AES cipher", e);
+                }
                 initiated = true;
                 if (len > 0)
                     return cipher.update(b, off, len);
@@ -82,9 +106,13 @@ public class AesDecryptor implements IDecryptor {
 
     public byte[] finish() {
         if (cipher != null) {
-            return cipher.doFinal();
-        } else {
-            return null;
+            try {
+                return cipher.doFinal();
+            } catch (IllegalBlockSizeException | BadPaddingException e) {
+                Logger logger = LoggerFactory.getLogger(AesDecryptor.class);
+                logger.info("Exception finalizing AES cipher", e);
+            }
         }
+        return null;
     }
 }

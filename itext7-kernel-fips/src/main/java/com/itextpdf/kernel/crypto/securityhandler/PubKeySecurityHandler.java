@@ -65,7 +65,7 @@ import org.bouncycastle.asn1.cms.RecipientIdentifier;
 import org.bouncycastle.asn1.cms.RecipientInfo;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
-import org.bouncycastle.asn1.x509.TBSCertificateStructure;
+import org.bouncycastle.asn1.x509.TBSCertificate;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -250,7 +250,7 @@ public abstract class PubKeySecurityHandler extends SecurityHandler {
         pkcs7input[23] = one;
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ASN1OutputStream k = ASN1OutputStream.create(baos);
+        ASN1OutputStream k = new ASN1OutputStream(baos);
         ASN1Primitive obj = createDERForRecipient(pkcs7input, (X509Certificate) certificate);
         k.writeObject(obj);
         cms = baos.toByteArray();
@@ -297,7 +297,7 @@ public abstract class PubKeySecurityHandler extends SecurityHandler {
     private KeyTransRecipientInfo computeRecipientInfo(X509Certificate x509certificate, byte[] abyte0)
             throws GeneralSecurityException, IOException {
         ASN1InputStream asn1inputstream = new ASN1InputStream(new ByteArrayInputStream(x509certificate.getTBSCertificate()));
-        TBSCertificateStructure tbscertificatestructure = TBSCertificateStructure.getInstance(asn1inputstream.readObject());
+        TBSCertificate tbscertificatestructure = TBSCertificate.getInstance(asn1inputstream.readObject());
         assert tbscertificatestructure != null;
         AlgorithmIdentifier algorithmidentifier = tbscertificatestructure.getSubjectPublicKeyInfo().getAlgorithm();
         IssuerAndSerialNumber issuerandserialnumber = new IssuerAndSerialNumber(
