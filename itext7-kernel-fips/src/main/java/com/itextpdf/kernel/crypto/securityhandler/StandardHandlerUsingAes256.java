@@ -260,7 +260,7 @@ public class StandardHandlerUsingAes256 extends StandardSecurityHandler {
 
             byte[] hash;
 
-            final Cipher cipher = Cipher.getInstance("AES/CBC/NoPadding");
+            final Cipher cipher = Cipher.getInstance("AES/CBC/NoPadding", "BCFIPS");
 
             hash = computeHash(password, oValue, VALIDATION_SALT_OFFSET, SALT_LENGTH, uValue);
             usedOwnerPassword = compareArray(hash, oValue, 32);
@@ -314,7 +314,7 @@ public class StandardHandlerUsingAes256 extends StandardSecurityHandler {
 
     private byte[] computeHash(byte[] password, byte[] salt, int saltOffset, int saltLen, byte[] userKey) throws GeneralSecurityException {
         MessageDigest mdSha256 = MessageDigest.getInstance("SHA-256");
-        final Cipher cipher = Cipher.getInstance("AES/CBC/NoPadding");
+        final Cipher cipher = Cipher.getInstance("AES/CBC/NoPadding", "BCFIPS");
 
         mdSha256.update(password);
         mdSha256.update(salt, saltOffset, saltLen);
