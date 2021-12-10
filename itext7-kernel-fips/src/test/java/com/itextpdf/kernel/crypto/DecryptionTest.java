@@ -309,4 +309,32 @@ public class DecryptionTest {
             assertTrue("Wrong text extracted from page 1", text.startsWith("THIS IS A TEST"));
         }
     }
+
+    @Test
+    public void testRn2104812() throws IOException {
+        try (
+            InputStream resource = getClass().getResourceAsStream("DecryptionTest/RN 2104812.pdf");
+            PdfReader pdfReader = new PdfReader(resource);
+            PdfDocument pdfDocument = new PdfDocument(pdfReader);
+        ) {
+            assertTrue("PdfReader fails to report test file to be encrypted.", pdfReader.isEncrypted());
+            assertEquals("PdfDocument fails to report the correct number of pages", 3, pdfDocument.getNumberOfPages());
+            String text = PdfTextExtractor.getTextFromPage(pdfDocument.getFirstPage());
+            assertEquals("Wrong text extracted from page 1", "  02/18/21  04:36 PM \n"
+                    + "83921 RN 21 04812  PAGE 1 \n"
+                    + "        \n"
+                    + "An act to amend Section 791.03 of the Insurance Code, relating to \n"
+                    + "insurance. \n"
+                    + "SECURED\n"
+                    + "COPY\n"
+                    + "SECURED\n"
+                    + "COPY\n"
+                    + "SECURED\n"
+                    + "COPY\n"
+                    + "SECURED\n"
+                    + "COPY\n"
+                    + "210481283921BILLMA28\n"
+                    + "  ", text);
+        }
+    }
 }

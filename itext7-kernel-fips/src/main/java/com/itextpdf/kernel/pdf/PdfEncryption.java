@@ -520,9 +520,9 @@ public class PdfEncryption extends PdfObjectWrapper<PdfDictionary> {
                 break;
             case 3:
                 PdfNumber lengthValue = encDict.getAsNumber(PdfName.Length);
-                if (lengthValue == null)
-                    throw new PdfException(PdfException.IllegalLengthValue);
-                length = lengthValue.intValue();
+                length = 40;
+                if (lengthValue != null)
+                    length = lengthValue.intValue();
                 if (length > 128 || length < 40 || length % 8 != 0)
                     throw new PdfException(PdfException.IllegalLengthValue);
                 cryptoMode = EncryptionConstants.STANDARD_ENCRYPTION_128;
