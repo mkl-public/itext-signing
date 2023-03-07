@@ -13,10 +13,11 @@
 		<itextpdf.version>7.1.14</itextpdf.version>
 		<junit.version>4.12</junit.version>
 		<junit.jupiter.version>5.6.0</junit.jupiter.version>
+		<laverca.csc.version>1.0.0</laverca.csc.version>
 		<logback.version>1.2.3</logback.version>
 		<maven.compiler.source>11</maven.compiler.source>
 		<maven.compiler.target>11</maven.compiler.target>
-		<slf4j.version>1.7.12</slf4j.version>
+		<slf4j.version>1.7.30</slf4j.version>
 	</properties>
 	<dependencyManagement>
 		<dependencies>
@@ -49,6 +50,11 @@
 				<groupId>com.itextpdf</groupId>
 				<artifactId>sign</artifactId>
 				<version>${itextpdf.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>fi.methics</groupId>
+				<artifactId>laverca-csc-client</artifactId>
+				<version>${laverca.csc.version}</version>
 			</dependency>
 			<dependency>
 				<groupId>junit</groupId>
@@ -92,6 +98,7 @@
 		<module>pkcs11</module>
 		<module>pkcs11-jdk8</module>
 		<module>simple</module>
+		<module>csc-laverca</module>		
 	</modules>
 	<build>
 		<plugins>
