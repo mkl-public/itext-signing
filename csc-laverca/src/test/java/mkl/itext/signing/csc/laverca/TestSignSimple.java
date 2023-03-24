@@ -26,6 +26,7 @@ import com.itextpdf.signatures.PdfSigner.CryptoStandard;
 class TestSignSimple {
     // from laverca-csc-client tests
     public static final String METHICS_BASE_URL = "https://demo.methics.fi";
+    public static final String METHICS_VERSION = "v1";
     public static final String METHICS_USERNAME = "35847001001";
     public static final String METHICS_API_KEY  = "E6v31rAxWoY7";
 
@@ -44,7 +45,7 @@ class TestSignSimple {
      */
     @Test
     void testSignSimpleMethics() throws IOException, GeneralSecurityException {
-        CscLavercaClientSignature signature = new CscLavercaClientSignature(METHICS_BASE_URL, METHICS_USERNAME, METHICS_API_KEY,
+        CscLavercaClientSignature signature = new CscLavercaClientSignature(METHICS_BASE_URL, METHICS_VERSION, METHICS_USERNAME, METHICS_API_KEY,
                 client -> client.listCredentials().credentialIDs.get(0),
                 algorithms -> "1.2.840.113549.1.1.11");
 

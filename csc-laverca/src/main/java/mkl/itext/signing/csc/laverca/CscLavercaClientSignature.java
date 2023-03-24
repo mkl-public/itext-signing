@@ -21,6 +21,7 @@ import com.itextpdf.signatures.IExternalSignature;
 import fi.methics.laverca.csc.CscClient;
 import fi.methics.laverca.csc.json.credentials.CscCredentialsInfoResp;
 import fi.methics.laverca.csc.json.signatures.CscSignHashResp;
+import mkl.itext.signing.csc.laverca.vx.CscClientVx;
 
 /**
  * <p>
@@ -32,9 +33,9 @@ import fi.methics.laverca.csc.json.signatures.CscSignHashResp;
  */
 public class CscLavercaClientSignature implements IExternalSignature {
 
-    public CscLavercaClientSignature(String baseUrl, String username, String password,
-            Function<CscClient, String> credentialSelector, Function<List<String>, String> algorithmSelector) {
-        client = new CscClient.Builder().withBaseUrl(baseUrl)
+    public CscLavercaClientSignature(String baseUrl, String version, String username, String password,
+            Function<CscClientVx, String> credentialSelector, Function<List<String>, String> algorithmSelector) {
+        client = new CscClientVx.Builder().withBaseUrl(baseUrl).withVersion(version)
                 .withTrustInsecureConnections(true)
                 .withUsername(username)
                 .withPassword(password)
@@ -87,7 +88,7 @@ public class CscLavercaClientSignature implements IExternalSignature {
         }
     }
 
-    final CscClient client;
+    final CscClientVx client;
     final String credentialId;
     final CscCredentialsInfoResp credentialInfo;
     final String algorithmOid;
